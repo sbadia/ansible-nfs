@@ -1,0 +1,62 @@
+#
+# Install needed packages
+#
+- name: Install needed nfs packages
+  yum: pkg={{ item }} state=present
+  with_items:
+  - nfs-utils
+  - rpcbind
+  tags:
+  - nfs/client
+  when: ansible_distribution_major_version|int < 22
+#
+- name: Install needed nfs packages
+  dnf: pkg={{ item }} state=present
+  with_items:
+  - nfs-utils
+  - rpcbind
+  tags:
+  - nfs/client
+  when: ansible_distribution_major_version|int > 21
+
+- name: enable nfs-related services and run them (fedora20 only)
+  service: name={{ item }}  enabled=true state=started
+  with_items:
+  - rpcbind
+  - nfs-lock
+  when: ansible_distribution == 'Fedora' and ansible_distribution_major_version|int == 20
+  tags:
+  - nfs/client
+
+- name: enable nfs-related services and run them (rhel7)
+  service: name={{ item }}  enabled=true state=started
+  with_items:
+  - rpcbind
+  - nfs-lock
+  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version|int == 7
+  tags:
+  - nfs/client
+
+- name: enable nfs-related services and run them (rhel6)
+  action: service name={{ item }}  enabled=true state=started
+  with_items:
+  - rpcidmapd
+  - rpcbind
+  - nfs
+  - nfslock
+  when: ansible_distribution == 'RedHat' and ansible_distribution_major_version|int == 6
+  tags:
+  - nfs/client
+
+- name: nfs mount points (rdu)
+  mount: >
+        name={{ mnt_dir }}
+        src=172.31.1.11:/{{ nfs_src_dir }}
+        fstype=nfs
+        opts={{nfs_mount_opts}}
+        passno=0
+        dump=0
+        state=mounted
+  when: datacenter == 'rdu'
+  tags:
+  - nfs/client
